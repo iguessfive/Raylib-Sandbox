@@ -1,4 +1,5 @@
 *.exe
+*.exec
 *.ilk
 *.zip
 *.exp
@@ -12,4 +13,5 @@ build
 c_cpp_properties.json
 settings.json
 .clangd
-.dSYM
+*.dSYM
+celestelone
