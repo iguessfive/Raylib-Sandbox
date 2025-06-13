@@ -9,6 +9,7 @@ int window_height = 648;
 
 int main () 
 {
+    InitDebugLogging();
     create_window();
 }
 
