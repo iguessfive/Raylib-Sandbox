@@ -2,7 +2,7 @@
     "configurations": [
         
     {
-        "name": "Mac Launch",
+        "name": "Mac Build",
         "type": "cppdbg",
         "request": "launch",
         "program": "${workspaceFolder}/celesteclone",
@@ -12,6 +12,19 @@
         "environment": [],
         "externalConsole": false,
         "MIMode": "lldb"
+    },
+    {
+        "name": "Run Raylib Game",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "${workspaceFolder}/celesteclone",
+        "args": [],
+        "stopAtEntry": false,
+        "cwd": "${workspaceFolder}",
+        "environment": [],
+        "externalConsole": false,
+        "MIMode": "lldb",
+        "preLaunchTask": "build"
     }
     ]
 }

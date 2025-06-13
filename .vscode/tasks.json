@@ -15,6 +15,13 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "run game",
+            "type": "shell",
+            "command": "./celesteclone",
+            "group": "build",
+            "dependsOn": "build raylib app"
         }
     ]
 }
