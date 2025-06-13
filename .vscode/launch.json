@@ -1,0 +1,17 @@
+{
+    "configurations": [
+        
+    {
+        "name": "Mac Launch",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "${workspaceFolder}/celesteclone",
+        "args": [],
+        "stopAtEntry": false,
+        "cwd": "${workspaceFolder}",
+        "environment": [],
+        "externalConsole": false,
+        "MIMode": "lldb"
+    }
+    ]
+}
