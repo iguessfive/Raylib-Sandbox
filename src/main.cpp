@@ -1,6 +1,11 @@
 #include "raylib.h"
 
+#include "debug.h"
+
 int create_window(void);
+
+int window_width = 1152;
+int window_height = 648;
 
 int main () 
 {
@@ -9,13 +14,12 @@ int main ()
 
 int create_window(void)
 {
-    InitWindow(800, 450, "raylib [core] example - basic window");
+    InitWindow(window_width, window_height, "Celeste Clone");
 
     while (!WindowShouldClose())
     {
-        BeginDrawing();
-            ClearBackground(RAYWHITE);
-            DrawText("Congrats! You created your first window!", 190, 200, 20, LIGHTGRAY);
+        BeginDrawing(); // TItle screen logic
+            ClearBackground(DARKGRAY);
         EndDrawing();
     }
 

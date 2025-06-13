@@ -2,26 +2,42 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build",
+            "label": "build debug",
             "type": "shell",
-            "linux":
-            {
-                "command": "./build.sh",
-            },
-            "osx": {
-                "command": "./build.sh",
-            },
+            "command": "./build.sh debug",
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "build release",
+            "type": "shell",
+            "command": "./build.sh",
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "run game in debug",
+            "type": "shell",
+            "command": "./celesteclone",
             "group": {
                 "kind": "build",
                 "isDefault": true
-            }
+            },
+            "dependsOn": "build debug"
         },
         {
             "label": "run game",
             "type": "shell",
             "command": "./celesteclone",
-            "group": "build",
-            "dependsOn": "build raylib app"
-        }
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "dependsOn": "build release"
+        },
     ]
 }

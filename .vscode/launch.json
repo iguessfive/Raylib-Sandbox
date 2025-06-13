@@ -1,30 +1,31 @@
 {
+    "version": "0.2.0",
     "configurations": [
-        
-    {
-        "name": "Mac Build",
-        "type": "cppdbg",
-        "request": "launch",
-        "program": "${workspaceFolder}/celesteclone",
-        "args": [],
-        "stopAtEntry": false,
-        "cwd": "${workspaceFolder}",
-        "environment": [],
-        "externalConsole": false,
-        "MIMode": "lldb"
-    },
-    {
-        "name": "Run Raylib Game",
-        "type": "cppdbg",
-        "request": "launch",
-        "program": "${workspaceFolder}/celesteclone",
-        "args": [],
-        "stopAtEntry": false,
-        "cwd": "${workspaceFolder}",
-        "environment": [],
-        "externalConsole": false,
-        "MIMode": "lldb",
-        "preLaunchTask": "build"
-    }
-    ]
+        {
+            "name": "Debug Raylib Build",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/celesteclone",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "build debug"
+        },
+        {
+            "name": "Release Raylib Build",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/celesteclone",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "build release"
+        }
+  ]
 }
