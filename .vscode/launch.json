@@ -12,7 +12,7 @@
             "environment": [],
             "externalConsole": false,
             "MIMode": "lldb",
-            "preLaunchTask": "build debug"
+            "preLaunchTask": "build debug",
         },
         {
             "name": "Release Raylib Build",
