@@ -1,8 +1,6 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
-
-
 #include "raylib.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -38,13 +36,14 @@ static inline void InitDebugLogging(void) {
     SetTraceLogCallback(ColoredTraceLogCallback);
 }
 
-  #define ASSERT(cond, msg) \
-    if (!(cond)) { \
-      TraceLog(LOG_FATAL, "ASSERT FAILED: %s", msg); \
-      exit(1); \
-    } // if true, continue, otherwise terminate
+#define ASSERT(cond, msg) \
+  if (!(cond)) { \
+    TraceLog(LOG_FATAL, "ASSERT FAILED: %s", msg); \
+    exit(1); \
+  } // if true, continue, otherwise terminate
 #else
   #define ASSERT(cond, msg) ((void)0)  // no-op in release builds
+  #define static inline void InitDebugLogging(void) {};
 #endif
 
 #endif

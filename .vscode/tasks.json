@@ -22,7 +22,7 @@
         {
             "label": "run game in debug",
             "type": "shell",
-            "command": "./celesteclone",
+            "command": "./sandbox",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -32,7 +32,7 @@
         {
             "label": "run game",
             "type": "shell",
-            "command": "./celesteclone",
+            "command": "./sandbox",
             "group": {
                 "kind": "build",
                 "isDefault": false
