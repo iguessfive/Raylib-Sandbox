@@ -27,7 +27,7 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "dependsOn": "build debug"
+            "dependsOn": "build debug",
         },
         {
             "label": "run game",
