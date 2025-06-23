@@ -84,8 +84,8 @@ typedef struct Ball {
 //------------------------------------------------------------------------------------
 // Global Variables Declaration
 //------------------------------------------------------------------------------------
-static const int screenWidth = 800;
-static const int screenHeight = 450;
+static const int screenWidth = 1152;
+static const int screenHeight = 648;
 
 static bool gameOver = false;
 static bool pause = false;
@@ -116,7 +116,7 @@ static bool UpdateBall(int playerTurn);
 //------------------------------------------------------------------------------------
 // Program main entry point
 //------------------------------------------------------------------------------------
-int projectile_game(void)
+int launch_game()
 {
     // Initialization (Note windowTitle is unused on Android)
     //---------------------------------------------------------

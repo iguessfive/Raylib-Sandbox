@@ -1,9 +1,6 @@
 #include "raylib.h"
 
-int create_board() {
-    int screen_width = 1152;
-    int screen_height = 648;
-
+int world_screen(int screen_width, int screen_height) {
     InitWindow(screen_width, screen_height, "raylib [core] example - core world screen");
 
     // Define the camera to look into our 3d world

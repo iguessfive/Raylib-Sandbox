@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug Raylib Build",
+            "name": "Debug Build",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/sandbox",
@@ -15,7 +15,7 @@
             "preLaunchTask": "build debug",
         },
         {
-            "name": "Release Raylib Build",
+            "name": "Release Build",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/sandbox",
