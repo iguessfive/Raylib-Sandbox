@@ -18,7 +18,7 @@
             "name": "Release Build",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/sandbox",
+            "program": "${workspaceFolder}/asteroids",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

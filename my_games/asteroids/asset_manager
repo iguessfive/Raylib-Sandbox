@@ -1,0 +1,30 @@
+
+#include "raylib.h"
+#include <unordered_map>
+#include <string>
+
+static std::unordered_map<std::string, Texture2D> textureMap;
+static std::unordered_map<std::string, Font> fontMap;
+
+void ImportTextures() 
+{
+    textureMap["player"] = LoadTexture("my_games/asteroids/spaceship.png");
+    textureMap["asteroid"] = LoadTexture("my_games/asteroids/asteriod.png");
+    textureMap["bullet"] = LoadTexture("my_games/asteroids/bullet.png");
+};
+
+void ImportFonts() 
+{
+    fontMap["space grotesk"] = LoadFont("my_games/asteroids/space_grotesk_font.ttf");
+}
+
+void UnloadAssets()
+{
+    for (auto& element : textureMap) {
+        const auto& value = element.second; // texture
+        UnloadTexture(value);
+    }
+
+    UnloadFont(fontMap["space grotesk"]);
+    
+}

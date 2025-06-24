@@ -25,17 +25,17 @@
             "command": "./sandbox",
             "group": {
                 "kind": "build",
-                "isDefault": true
+                "isDefault": false
             },
             "dependsOn": "build debug",
         },
         {
             "label": "run game",
             "type": "shell",
-            "command": "./sandbox",
+            "command": "./asteroids",
             "group": {
                 "kind": "build",
-                "isDefault": false
+                "isDefault": true
             },
             "dependsOn": "build release"
         },
