@@ -1,6 +1,6 @@
 #!/bin/bash
 
-clang++ my_games/asteroids/asteroids.cpp -o asteroids \
+clang++ -std=c++20 my_games/asteroids/asteroids.cpp -o asteroids \
 -I/opt/homebrew/include \
 -L/opt/homebrew/lib -lraylib \
 -framework Cocoa -framework OpenGL -framework IOKit -framework CoreVideo

@@ -2,6 +2,7 @@
 #include "raymath.h"
 
 #include <iostream>
+#include <vector>
 
 // Setting
 #define WINDOW_WIDTH 1152
@@ -27,11 +28,37 @@ struct Sprite {
     }
 };
 
-struct Bullet : Sprite
+struct Bullet
 {
+    Bullet(Vector2 position, Texture2D texture){
+        this->position = position;
+        this->texture = texture;
+    };
+
     Vector2 position = Vector2();
-    Vector2 direction = Vector2();
-    float speed = 200.0f;
+    Vector2 direction = Vector2({0, -1});
+    float speed = 600.0f;
+    Vector2 velocity = Vector2Scale(direction, speed);
+    Texture2D texture;
+    bool isActive = false;
+
+    void update()
+    {
+        float delta = GetFrameTime();
+        position += velocity * delta;
+
+        if (position.y + texture.height < 0.0f)
+        {
+            isActive = false;
+        }
+    }
+
+
+    void draw()
+    {
+        DrawTextureV(texture, position, WHITE);
+    }
+
 };
 
 
@@ -39,6 +66,8 @@ struct Player : Sprite
 {
     Vector2 direction;
     float speed;
+
+    std::vector<Bullet> bulletPool{};
 
     Player(Vector2 position = Vector2(), Vector2 direction = Vector2(), float speed = 300.0f) {
         this->texture = LoadTexture("my_games/asteroids/spaceship.png");
@@ -50,15 +79,21 @@ struct Player : Sprite
 
     Player(float speed){};
 
+    Texture2D bulletTexture = LoadTexture("my_games/asteroids/bullet.png");
+
     void update() 
     {
         // Input
         direction.x = IsKeyDown(KEY_RIGHT) - IsKeyDown(KEY_LEFT);
         direction.y = IsKeyDown(KEY_DOWN) - IsKeyDown(KEY_UP);
 
-        if (IsKeyDown(KEY_SPACE)) // Shoot
+        if (IsKeyPressed(KEY_SPACE)) // Shoot
         {
-
+            Bullet newBullet(Vector2Add(position, Vector2{46.0f, -20.0f}), bulletTexture);
+            newBullet.texture = newBullet.texture;
+            newBullet.isActive = true;
+            bulletPool.push_back(newBullet);
+            std::cout << bulletPool.size() << "\n";
         }
 
         // Movement
@@ -72,10 +107,10 @@ struct Player : Sprite
         position.y = Clamp(position.y, 0.0f, WINDOW_HEIGHT - sizeRect.y);
     }
 
-
     ~Player() 
     {
         UnloadTexture(texture);
+        UnloadTexture(bulletTexture);
     }
 };
 
@@ -92,7 +127,7 @@ struct Game {
     {
         InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Asteroids");
         SetExitKey(KEY_ESCAPE);
-    };
+    };    
     
     void run()
     {
@@ -105,13 +140,29 @@ struct Game {
         {
             // Updating Logic
             player.update();
-
+            for (Bullet &b : player.bulletPool)
+            {
+                if (b.isActive)
+                {
+                    b.update();
+                }
+            }
+            std::erase_if(player.bulletPool, [](const Bullet& b) { return !b.isActive; });
+                        
             // Rendering
             BeginDrawing();
             ClearBackground(BGCOLOR);
 
             player.draw();
-            
+            for (Bullet &b : player.bulletPool)
+            {
+                if (b.isActive)
+                {
+                    b.draw();
+                }
+                
+            }
+
             EndDrawing();
         };
         CloseWindow();
