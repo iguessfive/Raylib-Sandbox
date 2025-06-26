@@ -8,7 +8,7 @@ struct Timer {
     bool repeat = false;
     std::function<void()> func = nullptr;
 
-    Timer(float duration, bool repeat = false, bool autostart = false, std::function<void()> func = nullptr);
+    Timer(float duration = 1.0f, bool repeat = false, bool autostart = false, std::function<void()> func = nullptr);
 
     void activate();
     void deactivate();

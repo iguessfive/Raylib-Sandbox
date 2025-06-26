@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "asset_manager.cpp"
+#include "timer.h"
 
 // Setting
 #define WINDOW_WIDTH 1152
@@ -12,9 +13,9 @@
 #define BGCOLOR Color({0xF0, 0xF2, 0xF3, 0xFF}) // #F0F2F3
 #define PLAYER_SPEED 400
 #define LASER_SPEED 600
-#define METEOR_TIME_DURATION 0.4f
+#define ASTEROID_TIME_DURATION 0.4f
 
-constexpr int METEOR_SPEED_RANGE[] = {300, 400};
+constexpr int ASTEROID_SPEED_RANGE[2] = {300, 400};
 
 struct Sprite {
     Texture2D texture;
@@ -89,8 +90,6 @@ struct Player
             newBullet.isActive = true;
             bulletPool.push_back(newBullet);
             std::cout << bulletPool.size() << "\n";
-            std::cout << "Bullet tex ID: " << newBullet.sprite.texture.id << "\n";
-            std::cout << "Player tex ID: " << sprite.texture.id << "\n";
         }
 
         // Movement
@@ -105,22 +104,59 @@ struct Player
     }
 };
 
-struct Asteroid : Sprite
+struct Asteroid
 {
-    Vector2 position = Vector2();
-    Vector2 direction = Vector2();
+    Sprite sprite;
+    Vector2 direction = Vector2({0, 1});
     float speed = 200.0f;
+    Vector2 velocity = Vector2Scale(direction, speed);
+    bool isOffScreen = false;
+
+    Asteroid(){};
+    Asteroid(Sprite sprite)
+    {
+        this->sprite = sprite;
+    }
+
+    void update() 
+    {
+        float delta = GetFrameTime();
+        sprite.position += velocity * delta;
+
+        if ((sprite.position.y - sprite.texture.height) > WINDOW_HEIGHT)
+        {
+            isOffScreen = true;
+        }
+    }
 };
 
 struct Game {
     
+    std::vector< Asteroid> asteroidPool{};
+
     Game() // Default 
     {
         InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Asteroids");
         SetExitKey(KEY_ESCAPE);
-    };    
+    };
+
+    Timer CreateAsteroidSpawnTimer() {
+        Timer spawnAsteroidTimer = Timer(
+        ASTEROID_TIME_DURATION,
+        true,
+        true,
+        [this]() 
+        {
+            float x = static_cast<float>(GetRandomValue(0, WINDOW_WIDTH - 128));
+            Vector2 spawnPosition = {x, -128.0f}; // Off-screen top
+            Sprite asteroidSprite = Sprite({spawnPosition, GetTexture("asteroid")});
+            Asteroid newAsteroid(asteroidSprite);
+            asteroidPool.push_back(newAsteroid);
+        });
+        return spawnAsteroidTimer;
+    }
     
-    void run()
+    void Run()
     {
         // Load Assets
         ImportTextures();
@@ -130,11 +166,18 @@ struct Game {
             (WINDOW_WIDTH - player.sprite.sizeRect.x)/2.0f, (WINDOW_HEIGHT - player.sprite.sizeRect.y)/2.0f
         };
 
+        Timer asteroidSpawnTimer = CreateAsteroidSpawnTimer();
+
         // Game Loop
         while (!WindowShouldClose())
         {
             // Updating Logic
             player.update();
+            asteroidSpawnTimer.update();
+            for (Asteroid &a : asteroidPool)
+            {
+                a.update();
+            }
             for (Bullet &b : player.bulletPool)
             {
                 if (b.isActive)
@@ -142,22 +185,25 @@ struct Game {
                     b.update();
                 }
             }
+            // Once condition is true, the elment in array will be removed
             std::erase_if(player.bulletPool, [](const Bullet& b) { return !b.isActive; });
-                        
+            std::erase_if(asteroidPool, [](const Asteroid& a) { return a.isOffScreen; });
+
             // Rendering
             BeginDrawing();
             ClearBackground(BGCOLOR);
 
-            DrawTextureV(GetTexture("bullet"), {100, 100}, WHITE);
-
             player.sprite.draw();
+            for (Asteroid &a : asteroidPool)
+            {
+                a.sprite.draw();
+            }
             for (Bullet &b : player.bulletPool)
             {
                 if (b.isActive)
                 {
                     b.sprite.draw();
                 }
-                
             }
 
             EndDrawing();
@@ -174,5 +220,5 @@ struct Game {
 int main() 
 {
     Game game{};
-    game.run();
+    game.Run();
 }
