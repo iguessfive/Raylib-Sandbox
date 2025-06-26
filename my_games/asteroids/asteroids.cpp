@@ -4,6 +4,8 @@
 #include <iostream>
 #include <vector>
 
+#include "asset_manager.cpp"
+
 // Setting
 #define WINDOW_WIDTH 1152
 #define WINDOW_HEIGHT 648
@@ -17,10 +19,14 @@ constexpr int METEOR_SPEED_RANGE[] = {300, 400};
 struct Sprite {
     Texture2D texture;
     Vector2 position;
-    Vector2 velocity; // speed & direction
-    Vector2 sizeRect;
+    Vector2 sizeRect = Vector2({128.0f, 128.0f}); // default grid
 
-    void update(float delta){};
+    Sprite(){};
+    Sprite(Vector2 position, Texture2D texture)
+    {
+        this->texture = texture;
+        this->position = position;
+    }
 
     void draw() 
     {
@@ -30,56 +36,46 @@ struct Sprite {
 
 struct Bullet
 {
-    Bullet(Vector2 position, Texture2D texture){
-        this->position = position;
-        this->texture = texture;
-    };
-
-    Vector2 position = Vector2();
+    Sprite sprite;
     Vector2 direction = Vector2({0, -1});
     float speed = 600.0f;
     Vector2 velocity = Vector2Scale(direction, speed);
-    Texture2D texture;
     bool isActive = false;
+
+    Bullet(){};
+    Bullet(Vector2 position, Texture2D texture)
+    {
+        sprite.texture = texture;
+        sprite.position = position;
+    }
 
     void update()
     {
         float delta = GetFrameTime();
-        position += velocity * delta;
+        sprite.position += velocity * delta;
 
-        if (position.y + texture.height < 0.0f)
+        if (sprite.position.y + sprite.texture.height < 0.0f)
         {
             isActive = false;
         }
     }
-
-
-    void draw()
-    {
-        DrawTextureV(texture, position, WHITE);
-    }
-
 };
 
-
-struct Player : Sprite
+struct Player
 {
+    Sprite sprite;
+    Vector2 velocity;
     Vector2 direction;
     float speed;
 
     std::vector<Bullet> bulletPool{};
 
     Player(Vector2 position = Vector2(), Vector2 direction = Vector2(), float speed = 300.0f) {
-        this->texture = LoadTexture("my_games/asteroids/spaceship.png");
-        this->sizeRect = Vector2({128.0f, 128.0f});
-        this->position = position;
+        sprite.texture = GetTexture("player");
+        sprite.position = position;
         this->direction = direction;
         this->speed = speed;
     }
-
-    Player(float speed){};
-
-    Texture2D bulletTexture = LoadTexture("my_games/asteroids/bullet.png");
 
     void update() 
     {
@@ -89,28 +85,23 @@ struct Player : Sprite
 
         if (IsKeyPressed(KEY_SPACE)) // Shoot
         {
-            Bullet newBullet(Vector2Add(position, Vector2{46.0f, -20.0f}), bulletTexture);
-            newBullet.texture = newBullet.texture;
+            Bullet newBullet = Bullet(Vector2Add(sprite.position, Vector2{46.0f, -20.0f}), GetTexture("bullet"));
             newBullet.isActive = true;
             bulletPool.push_back(newBullet);
             std::cout << bulletPool.size() << "\n";
+            std::cout << "Bullet tex ID: " << newBullet.sprite.texture.id << "\n";
+            std::cout << "Player tex ID: " << sprite.texture.id << "\n";
         }
 
         // Movement
         direction = Vector2Normalize(direction);
         velocity = Vector2Scale(direction, speed);
         float delta = GetFrameTime();
-        position += velocity * delta;
+        sprite.position += velocity * delta;
 
         // Keep in bounds
-        position.x = Clamp(position.x, 0.0f, WINDOW_WIDTH - sizeRect.x);
-        position.y = Clamp(position.y, 0.0f, WINDOW_HEIGHT - sizeRect.y);
-    }
-
-    ~Player() 
-    {
-        UnloadTexture(texture);
-        UnloadTexture(bulletTexture);
+        sprite.position.x = Clamp(sprite.position.x, 0.0f, WINDOW_WIDTH - sprite.sizeRect.x);
+        sprite.position.y = Clamp(sprite.position.y, 0.0f, WINDOW_HEIGHT - sprite.sizeRect.y);
     }
 };
 
@@ -131,9 +122,13 @@ struct Game {
     
     void run()
     {
+        // Load Assets
+        ImportTextures();
         // Setup Logic
         Player player{};
-        player.position = Vector2{(WINDOW_WIDTH - player.sizeRect.x)/2.0f, (WINDOW_HEIGHT - player.sizeRect.y)/2.0f};
+        player.sprite.position = Vector2{
+            (WINDOW_WIDTH - player.sprite.sizeRect.x)/2.0f, (WINDOW_HEIGHT - player.sprite.sizeRect.y)/2.0f
+        };
 
         // Game Loop
         while (!WindowShouldClose())
@@ -153,18 +148,22 @@ struct Game {
             BeginDrawing();
             ClearBackground(BGCOLOR);
 
-            player.draw();
+            DrawTextureV(GetTexture("bullet"), {100, 100}, WHITE);
+
+            player.sprite.draw();
             for (Bullet &b : player.bulletPool)
             {
                 if (b.isActive)
                 {
-                    b.draw();
+                    b.sprite.draw();
                 }
                 
             }
 
             EndDrawing();
         };
+        // Unload Assets
+        UnloadTexture();
         CloseWindow();
     };
 }; 
@@ -177,4 +176,3 @@ int main()
     Game game{};
     game.run();
 }
-

@@ -18,13 +18,24 @@ void ImportFonts()
     fontMap["space grotesk"] = LoadFont("my_games/asteroids/space_grotesk_font.ttf");
 }
 
-void UnloadAssets()
+Texture2D GetTexture(const std::string& name) {
+    if (textureMap.find(name) != textureMap.end()) {
+        return textureMap[name];
+    } else {
+        TraceLog(LOG_WARNING, TextFormat("Texture '%s' not found!", name.c_str()));
+        return {}; // return empty texture (safe fallback)
+    }
+}
+
+void UnloadTexture()
 {
     for (auto& element : textureMap) {
         const auto& value = element.second; // texture
         UnloadTexture(value);
-    }
+    }    
+}
 
+void UnloadFonts()
+{
     UnloadFont(fontMap["space grotesk"]);
-    
 }
