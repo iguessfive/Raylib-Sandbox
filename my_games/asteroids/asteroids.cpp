@@ -15,29 +15,98 @@
 #define LASER_SPEED 600
 #define ASTEROID_TIME_DURATION 0.4f
 
-constexpr int ASTEROID_SPEED_RANGE[2] = {300, 400};
+constexpr int ASTEROID_SPEED_RANGE[2] = {100, 250};
 
 struct Sprite {
     Texture2D texture;
     Vector2 position;
-    Vector2 sizeRect = Vector2({128.0f, 128.0f}); // default grid
+    Rectangle Rect;
+    Vector2 sizeRect;
 
     Sprite(){};
     Sprite(Vector2 position, Texture2D texture)
     {
         this->texture = texture;
         this->position = position;
+        sizeRect = Vector2(texture.width, texture.height);
+        Rect = Rectangle(position.x, position.y, sizeRect.x, sizeRect.y);
     }
 
     void draw() 
     {
         DrawTextureV(texture, position, WHITE);
     }
+
+    Vector2 get_center() const
+    {
+        return Vector2({position.x / 2.0f, position.y / 2.0f});
+    }
+};
+
+enum class ColliderType {Rectangle, Circle};
+
+struct CollisionShape {
+    ColliderType type; 
+    Rectangle rect;
+    Vector2 center; // circle
+    float radius;
+
+    CollisionShape()
+    {
+        // Adding the collision to obj
+    }
+
+    bool overlaps(const CollisionShape& other) const
+    {
+        switch (type)
+        {
+        case ColliderType::Rectangle:
+            if (other.type == ColliderType::Rectangle)
+            {
+                return CheckCollisionRecs(rect, other.rect);
+            }
+            if (other.type == ColliderType::Circle)
+            {
+                return CheckCollisionCircleRec(other.center, other.radius, rect);
+            }
+            break;
+        case ColliderType::Circle:
+            if (other.type == ColliderType::Rectangle)
+            {
+                return CheckCollisionCircleRec(center, radius, other.rect);
+            }
+            if (other.type == ColliderType::Circle)
+            {
+                return CheckCollisionCircles(center, radius, other.center, other.radius);
+            }
+            break;
+        default:
+            std::cout << "Shape not found\n";
+        }
+        return false;
+    }
+
+    void update(Vector2 position, Vector2 size) 
+    {
+        switch (type)
+        {
+        case ColliderType::Rectangle:
+            rect = Rectangle({position.x, position.y, size.x, size.y});
+            break;
+        case ColliderType::Circle:
+            center = Vector2Add(position, Vector2Scale(size, 0.5f));
+            break;
+        default:
+            std::cout << "Shape not found\n";
+            break;
+        }
+    }
 };
 
 struct Bullet
 {
     Sprite sprite;
+    CollisionShape collider;
     Vector2 direction = Vector2({0, -1});
     float speed = 600.0f;
     Vector2 velocity = Vector2Scale(direction, speed);
@@ -65,6 +134,7 @@ struct Bullet
 struct Player
 {
     Sprite sprite;
+    CollisionShape collider;
     Vector2 velocity;
     Vector2 direction;
     float speed;
@@ -72,8 +142,7 @@ struct Player
     std::vector<Bullet> bulletPool{};
 
     Player(Vector2 position = Vector2(), Vector2 direction = Vector2(), float speed = 300.0f) {
-        sprite.texture = GetTexture("player");
-        sprite.position = position;
+        sprite = Sprite(position, GetTexture("player"));
         this->direction = direction;
         this->speed = speed;
     }
@@ -86,7 +155,10 @@ struct Player
 
         if (IsKeyPressed(KEY_SPACE)) // Shoot
         {
-            Bullet newBullet = Bullet(Vector2Add(sprite.position, Vector2{46.0f, -20.0f}), GetTexture("bullet"));
+            Bullet newBullet = Bullet(
+                // position: (28: player_size - 16: bullet_size) / 2 = 6
+                Vector2Add(sprite.position, Vector2({6.0f, -10.0f})), GetTexture("bullet")
+            );
             newBullet.isActive = true;
             bulletPool.push_back(newBullet);
             std::cout << bulletPool.size() << "\n";
@@ -107,26 +179,41 @@ struct Player
 struct Asteroid
 {
     Sprite sprite;
+    CollisionShape collider;
     Vector2 direction = Vector2({0, 1});
-    float speed = 200.0f;
-    Vector2 velocity = Vector2Scale(direction, speed);
+    float speed;
+    Vector2 velocity;
     bool isOffScreen = false;
+    float rotation;
 
-    Asteroid(){};
     Asteroid(Sprite sprite)
     {
         this->sprite = sprite;
+        speed = (float)GetRandomValue(ASTEROID_SPEED_RANGE[0], ASTEROID_SPEED_RANGE[1]);
+        velocity = Vector2Scale(direction, speed);
+        rotation = 0;
     }
 
     void update() 
     {
         float delta = GetFrameTime();
         sprite.position += velocity * delta;
+        rotation += 40.0 * delta;
 
         if ((sprite.position.y - sprite.texture.height) > WINDOW_HEIGHT)
         {
             isOffScreen = true;
         }
+
+        // Physic
+
+    }
+
+    void draw()
+    {
+        DrawTextureEx(
+            sprite.texture, sprite.position, rotation, 1.0, WHITE
+        );
     }
 };
 
@@ -196,7 +283,7 @@ struct Game {
             player.sprite.draw();
             for (Asteroid &a : asteroidPool)
             {
-                a.sprite.draw();
+                a.draw();
             }
             for (Bullet &b : player.bulletPool)
             {
