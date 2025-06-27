@@ -23,7 +23,7 @@ struct Sprite {
     Rectangle Rect;
     Vector2 sizeRect;
 
-    Sprite(){};
+    Sprite() {};
     Sprite(Vector2 position, Texture2D texture)
     {
         this->texture = texture;
@@ -39,7 +39,7 @@ struct Sprite {
 
     Vector2 get_center() const
     {
-        return Vector2({position.x / 2.0f, position.y / 2.0f});
+        return Vector2Add(position, Vector2Scale(sizeRect, 0.5f));
     }
 };
 
@@ -51,9 +51,30 @@ struct CollisionShape {
     Vector2 center; // circle
     float radius;
 
-    CollisionShape()
+    CollisionShape() {};
+    CollisionShape(ColliderType type, float radius = 0.0f)
     {
-        // Adding the collision to obj
+        this->type = type;
+        if (type == ColliderType::Circle)
+        {
+            this->radius = radius;
+        }
+    }
+
+    void update(Vector2 position, Vector2 size) 
+    {
+        switch (type)
+        {
+        case ColliderType::Rectangle:
+            rect = Rectangle({position.x, position.y, size.x, size.y});
+            break;
+        case ColliderType::Circle:
+            center = Vector2Add(position, Vector2Scale(size, 0.5f));
+            break;
+        default:
+            std::cout << "Shape not found\n";
+            break;
+        }
     }
 
     bool overlaps(const CollisionShape& other) const
@@ -85,22 +106,6 @@ struct CollisionShape {
         }
         return false;
     }
-
-    void update(Vector2 position, Vector2 size) 
-    {
-        switch (type)
-        {
-        case ColliderType::Rectangle:
-            rect = Rectangle({position.x, position.y, size.x, size.y});
-            break;
-        case ColliderType::Circle:
-            center = Vector2Add(position, Vector2Scale(size, 0.5f));
-            break;
-        default:
-            std::cout << "Shape not found\n";
-            break;
-        }
-    }
 };
 
 struct Bullet
@@ -110,13 +115,12 @@ struct Bullet
     Vector2 direction = Vector2({0, -1});
     float speed = 600.0f;
     Vector2 velocity = Vector2Scale(direction, speed);
-    bool isActive = false;
+    bool destroy = false;
 
-    Bullet(){};
     Bullet(Vector2 position, Texture2D texture)
     {
-        sprite.texture = texture;
-        sprite.position = position;
+        sprite = Sprite(position, texture);
+        collider = CollisionShape(ColliderType::Rectangle);
     }
 
     void update()
@@ -126,8 +130,10 @@ struct Bullet
 
         if (sprite.position.y + sprite.texture.height < 0.0f)
         {
-            isActive = false;
+            destroy = true;
         }
+
+        collider.update(sprite.position, sprite.sizeRect);
     }
 };
 
@@ -145,6 +151,7 @@ struct Player
         sprite = Sprite(position, GetTexture("player"));
         this->direction = direction;
         this->speed = speed;
+        collider = CollisionShape(ColliderType::Circle);
     }
 
     void update() 
@@ -156,13 +163,14 @@ struct Player
         if (IsKeyPressed(KEY_SPACE)) // Shoot
         {
             Bullet newBullet = Bullet(
-                // position: (28: player_size - 16: bullet_size) / 2 = 6
                 Vector2Add(sprite.position, Vector2({6.0f, -10.0f})), GetTexture("bullet")
             );
-            newBullet.isActive = true;
             bulletPool.push_back(newBullet);
             std::cout << bulletPool.size() << "\n";
         }
+
+        // Physics
+        collider.update(sprite.position, sprite.sizeRect);
 
         // Movement
         direction = Vector2Normalize(direction);
@@ -170,7 +178,7 @@ struct Player
         float delta = GetFrameTime();
         sprite.position += velocity * delta;
 
-        // Keep in bounds
+        // Keep sprite in window
         sprite.position.x = Clamp(sprite.position.x, 0.0f, WINDOW_WIDTH - sprite.sizeRect.x);
         sprite.position.y = Clamp(sprite.position.y, 0.0f, WINDOW_HEIGHT - sprite.sizeRect.y);
     }
@@ -183,7 +191,7 @@ struct Asteroid
     Vector2 direction = Vector2({0, 1});
     float speed;
     Vector2 velocity;
-    bool isOffScreen = false;
+    bool destroy = false;
     float rotation;
 
     Asteroid(Sprite sprite)
@@ -192,6 +200,7 @@ struct Asteroid
         speed = (float)GetRandomValue(ASTEROID_SPEED_RANGE[0], ASTEROID_SPEED_RANGE[1]);
         velocity = Vector2Scale(direction, speed);
         rotation = 0;
+        collider = CollisionShape(ColliderType::Circle, sprite.sizeRect.x/2.0f);
     }
 
     void update() 
@@ -202,30 +211,34 @@ struct Asteroid
 
         if ((sprite.position.y - sprite.texture.height) > WINDOW_HEIGHT)
         {
-            isOffScreen = true;
+            destroy = true;
         }
 
-        // Physic
-
+        // Physics
+        collider.update(sprite.position, sprite.sizeRect);
     }
 
     void draw()
     {
-        DrawTextureEx(
-            sprite.texture, sprite.position, rotation, 1.0, WHITE
-        );
+        Rectangle source = { 0.0f, 0.0f, (float)sprite.texture.width, (float)sprite.texture.height };
+        Rectangle dest = { sprite.position.x + sprite.sizeRect.x / 2.0f, sprite.position.y + sprite.sizeRect.y / 2.0f, sprite.sizeRect.x, sprite.sizeRect.y };
+        Vector2 origin = { sprite.sizeRect.x / 2.0f, sprite.sizeRect.y / 2.0f };
+        DrawTexturePro(sprite.texture, source, dest, origin, rotation, WHITE);
+
+        // collision shape
+        // DrawCircle(collider.center.x, collider.center.y, collider.radius, SKYBLUE); 
     }
 };
 
 struct Game {
-    
-    std::vector< Asteroid> asteroidPool{};
 
-    Game() // Default 
+    Game() // Launch Setup 
     {
         InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Asteroids");
         SetExitKey(KEY_ESCAPE);
     };
+
+    std::vector< Asteroid> asteroidPool{};
 
     Timer CreateAsteroidSpawnTimer() {
         Timer spawnAsteroidTimer = Timer(
@@ -242,6 +255,33 @@ struct Game {
         });
         return spawnAsteroidTimer;
     }
+
+    void resolveAsteroidCollision(Asteroid& a, Asteroid& b)
+    {
+        Vector2 diff = Vector2Subtract(b.sprite.position, a.sprite.position);
+        float distance = Vector2Length(diff); 
+        float overlap = (a.collider.radius + b.collider.radius) - distance;
+
+        if (overlap > 0.0f)
+        {
+            Vector2 normal = Vector2Normalize(diff);
+
+            // Push apart
+            Vector2 push = Vector2Scale(normal, overlap * 0.5f);
+            a.sprite.position = Vector2Subtract(a.sprite.position, push);
+            b.sprite.position = Vector2Add(b.sprite.position, push);
+
+            // Reflect velocities (equal mass, elastic)
+            float aProj = Vector2DotProduct(a.velocity, normal);
+            float bProj = Vector2DotProduct(b.velocity, normal);
+
+            Vector2 aVelocity = Vector2Subtract(a.velocity, Vector2Scale(normal, aProj - bProj));
+            Vector2 bVelocity = Vector2Subtract(b.velocity, Vector2Scale(normal, bProj - aProj));
+
+            a.velocity = aVelocity;
+            b.velocity = bVelocity;
+        }
+    };
     
     void Run()
     {
@@ -258,7 +298,9 @@ struct Game {
         // Game Loop
         while (!WindowShouldClose())
         {
-            // Updating Logic
+            // --------------------------------------------------------------------------------
+            // Updating Logic 
+            // --------------------------------------------------------------------------------
             player.update();
             asteroidSpawnTimer.update();
             for (Asteroid &a : asteroidPool)
@@ -267,16 +309,54 @@ struct Game {
             }
             for (Bullet &b : player.bulletPool)
             {
-                if (b.isActive)
+                if (!b.destroy)
                 {
                     b.update();
                 }
             }
-            // Once condition is true, the elment in array will be removed
-            std::erase_if(player.bulletPool, [](const Bullet& b) { return !b.isActive; });
-            std::erase_if(asteroidPool, [](const Asteroid& a) { return a.isOffScreen; });
 
+            // Once condition is true, elment in array will be removed
+            std::erase_if(player.bulletPool, [](const Bullet& b) { return b.destroy; });
+            std::erase_if(asteroidPool, [](const Asteroid& a) { return a.destroy; });
+
+            // --------------------------------------------------------------------------------
+            // Physics
+            // --------------------------------------------------------------------------------
+            for (size_t i = 0; i < asteroidPool.size(); ++i) // O(n^2) Run Time
+            {
+                for (size_t j = i + 1; j < asteroidPool.size(); ++j)
+                {
+                    if (asteroidPool[i].collider.overlaps(asteroidPool[j].collider))
+                    {
+                        // Handle collision logic between `Asteroids` — e.g., bounce, destroy, etc.
+                        resolveAsteroidCollision(asteroidPool[i], asteroidPool[j]);
+                    }
+                }
+
+                if (asteroidPool[i].collider.overlaps(player.collider))
+                {
+                   // Game Over
+                   TraceLog(LOG_INFO, "Game Over");
+                }
+
+            }
+
+            for (Bullet& bullet : player.bulletPool)
+            {
+                for (Asteroid& asteroid : asteroidPool)
+                {
+                    if (CheckCollisionCircleRec(
+                        asteroid.collider.center, asteroid.collider.radius, bullet.collider.rect
+                    ))
+                    {
+                        bullet.destroy = true;
+                        asteroid.destroy = true;
+                    }
+                }
+            }
+            // --------------------------------------------------------------------------------
             // Rendering
+            // --------------------------------------------------------------------------------
             BeginDrawing();
             ClearBackground(BGCOLOR);
 
@@ -287,12 +367,11 @@ struct Game {
             }
             for (Bullet &b : player.bulletPool)
             {
-                if (b.isActive)
+                if (!b.destroy)
                 {
                     b.sprite.draw();
                 }
             }
-
             EndDrawing();
         };
         // Unload Assets
@@ -301,9 +380,9 @@ struct Game {
     };
 }; 
 
-//------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------
 // Program main entry point
-//------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------
 int main() 
 {
     Game game{};
