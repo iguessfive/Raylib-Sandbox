@@ -3,6 +3,8 @@
 #include <string>
 
 static std::unordered_map<std::string, Texture2D> textureMap;
+static std::unordered_map<std::string, Sound> soundMap;
+static Music backgroundMusic;
 static std::unordered_map<std::string, Font> fontMap;
 
 void ImportTextures() 
@@ -14,7 +16,13 @@ void ImportTextures()
 
 void ImportFonts() 
 {
-    fontMap["space grotesk"] = LoadFont("my_games/asteroids/space_grotesk_font.ttf");
+    fontMap["space grotesk"] = LoadFontEx("my_games/asteroids/space_grotesk_font.ttf", 90.0f, NULL, 0);
+}
+
+void ImportAudio() 
+{
+    backgroundMusic = LoadMusicStream("my_games/asteroids/gravity_waves_track.ogg");
+    soundMap["shoot"] = LoadSound("my_games/asteroids/shoot_sfx.ogg");
 }
 
 Texture2D GetTexture(const std::string& name) {
@@ -26,12 +34,29 @@ Texture2D GetTexture(const std::string& name) {
     }
 }
 
+Sound GetSound(const std::string& name) {
+    if (soundMap.find(name) != soundMap.end()) {
+        return soundMap[name];
+    } else {
+        TraceLog(LOG_WARNING, TextFormat("Sound '%s' not found!", name.c_str()));
+        return {}; // return empty Sound
+    }
+}
+
 void UnloadTexture()
 {
     for (auto& element : textureMap) {
         const auto& value = element.second; // texture
         UnloadTexture(value);
     }    
+}
+
+void UnloadAudio()
+{
+    for (auto& element : soundMap) {
+        UnloadSound(element.second);
+    }
+    UnloadMusicStream(backgroundMusic);
 }
 
 void UnloadFonts()

@@ -1,6 +1,7 @@
 #include "raylib.h"
 #include "raymath.h"
 
+#include <string>
 #include <iostream>
 #include <vector>
 
@@ -14,8 +15,12 @@
 #define PLAYER_SPEED 400
 #define LASER_SPEED 600
 #define ASTEROID_TIME_DURATION 0.4f
+#define FONT_SIZE 90.0f
 
 constexpr int ASTEROID_SPEED_RANGE[2] = {100, 250};
+
+bool isMusicOn = true;
+bool isSFXOn = true;
 
 struct Sprite {
     Texture2D texture;
@@ -72,7 +77,7 @@ struct CollisionShape {
             center = Vector2Add(position, Vector2Scale(size, 0.5f));
             break;
         default:
-            std::cout << "Shape not found\n";
+            TraceLog(LOG_ERROR, "Shape not found");
             break;
         }
     }
@@ -166,7 +171,8 @@ struct Player
                 Vector2Add(sprite.position, Vector2({6.0f, -10.0f})), GetTexture("bullet")
             );
             bulletPool.push_back(newBullet);
-            std::cout << bulletPool.size() << "\n";
+            if (isSFXOn) PlaySound(soundMap["shoot"]);
+            // std::cout << bulletPool.size() << "\n";
         }
 
         // Physics
@@ -235,6 +241,7 @@ struct Game {
     Game() // Launch Setup 
     {
         InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Asteroids");
+        InitAudioDevice();
         SetExitKey(KEY_ESCAPE);
     };
 
@@ -287,6 +294,8 @@ struct Game {
     {
         // Load Assets
         ImportTextures();
+        ImportFonts();
+        ImportAudio();
         // Setup Logic
         Player player{};
         player.sprite.position = Vector2{
@@ -294,6 +303,9 @@ struct Game {
         };
 
         Timer asteroidSpawnTimer = CreateAsteroidSpawnTimer();
+        int killScore{};
+        bool isGameOver = false;
+        PlayMusicStream(backgroundMusic);
 
         // Game Loop
         while (!WindowShouldClose())
@@ -301,7 +313,35 @@ struct Game {
             // --------------------------------------------------------------------------------
             // Updating Logic 
             // --------------------------------------------------------------------------------
-            player.update();
+            // Music
+            if (isMusicOn) {
+                UpdateMusicStream(backgroundMusic);
+                if (!IsMusicStreamPlaying(backgroundMusic)) PlayMusicStream(backgroundMusic);
+            }
+            else 
+            {
+                PauseMusicStream(backgroundMusic);
+            }
+
+            // Gameplay
+            Font defaultFont = fontMap["space grotesk"];
+            
+            int aliveScore = static_cast<int>(GetTime());
+            std::string aliveScoreText = std::to_string(aliveScore);
+            const char* aliveScoreStr = aliveScoreText.c_str();
+            Vector2 aliveScoreTextSize = MeasureTextEx(defaultFont, aliveScoreStr, FONT_SIZE, 0);
+
+            std::string killLabel = "Points";
+            Vector2 killLabelSize = MeasureTextEx(defaultFont, killLabel.c_str(), 30.0f, 0);
+
+            std::string killScoreText = std::to_string(killScore);
+            const char* killScoreStr = killScoreText.c_str();
+            Vector2 killScoreTextSize = MeasureTextEx(defaultFont, killScoreStr, 60.0f, 0);
+
+            std::string gameOverLabel = "Game Over";
+            Vector2 gameOverLabelSize = MeasureTextEx(defaultFont, gameOverLabel.c_str(), 90.0f, 0);
+
+            player.update(); 
             asteroidSpawnTimer.update();
             for (Asteroid &a : asteroidPool)
             {
@@ -314,6 +354,9 @@ struct Game {
                     b.update();
                 }
             }
+            // Audio Setting
+            if (IsKeyPressed(KEY_M)) isMusicOn = !isMusicOn;
+            if (IsKeyPressed(KEY_TAB)) isSFXOn = !isSFXOn;
 
             // Once condition is true, elment in array will be removed
             std::erase_if(player.bulletPool, [](const Bullet& b) { return b.destroy; });
@@ -335,10 +378,10 @@ struct Game {
 
                 if (asteroidPool[i].collider.overlaps(player.collider))
                 {
-                   // Game Over
-                   TraceLog(LOG_INFO, "Game Over");
+                    // Game Over
+                    // TraceLog(LOG_INFO, "Game Over");
+                    isGameOver = true;
                 }
-
             }
 
             for (Bullet& bullet : player.bulletPool)
@@ -351,6 +394,8 @@ struct Game {
                     {
                         bullet.destroy = true;
                         asteroid.destroy = true;
+                        // asteroid `kill` count
+                        ++killScore;
                     }
                 }
             }
@@ -360,22 +405,39 @@ struct Game {
             BeginDrawing();
             ClearBackground(BGCOLOR);
 
-            player.sprite.draw();
-            for (Asteroid &a : asteroidPool)
+            if (isGameOver)
             {
-                a.draw();
+                DrawTextEx(
+                    defaultFont, gameOverLabel.c_str(), 
+                    Vector2({(WINDOW_WIDTH - gameOverLabelSize.x)/2.0f, (WINDOW_HEIGHT - gameOverLabelSize.y)/2.0f}), 
+                    90.f, 0, BLACK
+                );
             }
-            for (Bullet &b : player.bulletPool)
+            else
             {
-                if (!b.destroy)
+                DrawTextEx(defaultFont, aliveScoreStr, Vector2({(WINDOW_WIDTH - aliveScoreTextSize.x)/2.0f, 100.0f}), FONT_SIZE, 0, BLACK);
+                DrawTextEx(defaultFont, killLabel.c_str(), Vector2({killLabelSize.x - 10.0f, 20.0f}), 30.f, 0, BLACK);
+                DrawTextEx(defaultFont, killScoreStr, Vector2({(killScoreTextSize.x) + 50.f, 50.0f}), 60.f, 0, BLACK);
+                player.sprite.draw();
+                for (Asteroid &a : asteroidPool)
                 {
-                    b.sprite.draw();
+                    a.draw();
+                }
+                for (Bullet &b : player.bulletPool)
+                {
+                    if (!b.destroy)
+                    {
+                        b.sprite.draw();
+                    }
                 }
             }
             EndDrawing();
         };
         // Unload Assets
+        UnloadAudio();
+        UnloadFonts();
         UnloadTexture();
+        CloseAudioDevice();
         CloseWindow();
     };
 }; 
